@@ -3,13 +3,13 @@ const { ROLES, CONTENT_STATUS } = require("./constants");
 
 const registerSchema = Joi.object({
   name: Joi.string().trim().min(2).max(120).required(),
-  email: Joi.string().trim().email().required(),
+  email: Joi.string().trim().email({ tlds: { allow: false } }).required(),
   password: Joi.string().min(6).max(72).required(),
   role: Joi.string().valid(ROLES.PRINCIPAL, ROLES.TEACHER).required()
 });
 
 const loginSchema = Joi.object({
-  email: Joi.string().trim().email().required(),
+  email: Joi.string().trim().email({ tlds: { allow: false } }).required(),
   password: Joi.string().required()
 });
 

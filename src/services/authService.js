@@ -22,9 +22,10 @@ async function registerUser(payload) {
     password_hash,
     role: payload.role
   });
+  const safeUser = await User.findByPk(user.id);
 
   return {
-    user,
+    user: safeUser,
     token: signToken(user)
   };
 }

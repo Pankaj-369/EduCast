@@ -22,13 +22,16 @@ Content Broadcasting System backend for teacher uploads, principal approval, and
 npm install
 ```
 
-2. Create `.env` from `.env.example` and update PostgreSQL credentials:
+2. Create `.env` from `.env.example` and update PostgreSQL credentials.
+   For Neon or another hosted PostgreSQL provider, set `DATABASE_URL`.
+   For local PostgreSQL, use the `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` fields.
 
 ```bash
 cp .env.example .env
 ```
 
-3. Create a PostgreSQL database named `educast`.
+3. Create a PostgreSQL database named `educast` if you are running PostgreSQL locally.
+   Hosted providers usually create the database for you.
 
 4. Sync tables:
 
