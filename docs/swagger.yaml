@@ -1,0 +1,141 @@
+openapi: 3.0.3
+info:
+  title: EduCast Content Broadcasting API
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+paths:
+  /auth/register:
+    post:
+      summary: Register a principal or teacher
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, role]
+              properties:
+                name: { type: string }
+                email: { type: string }
+                password: { type: string }
+                role: { type: string, enum: [principal, teacher] }
+      responses:
+        "201": { description: Created }
+  /auth/login:
+    post:
+      summary: Login and receive JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        "200": { description: Login successful }
+  /content:
+    post:
+      summary: Teacher uploads content for approval
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [title, subject, file]
+              properties:
+                title: { type: string }
+                subject: { type: string }
+                description: { type: string }
+                start_time: { type: string, format: date-time }
+                end_time: { type: string, format: date-time }
+                rotation_duration: { type: integer, example: 5 }
+                file: { type: string, format: binary }
+      responses:
+        "201": { description: Uploaded }
+  /content/my:
+    get:
+      summary: Teacher views own uploaded content
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: subject
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+  /principal/content:
+    get:
+      summary: Principal views all content
+      security:
+        - bearerAuth: []
+      responses:
+        "200": { description: OK }
+  /principal/content/pending:
+    get:
+      summary: Principal views pending content
+      security:
+        - bearerAuth: []
+      responses:
+        "200": { description: OK }
+  /principal/content/{id}/approve:
+    patch:
+      summary: Principal approves content
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Approved }
+  /principal/content/{id}/reject:
+    patch:
+      summary: Principal rejects content with reason
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        "200": { description: Rejected }
+  /content/live/{teacherId}:
+    get:
+      summary: Public live broadcast endpoint for students
+      parameters:
+        - in: path
+          name: teacherId
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: subject
+          schema: { type: string }
+      responses:
+        "200": { description: Current live content or no content available }

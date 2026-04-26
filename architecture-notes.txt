@@ -1,0 +1,74 @@
+EduCast Architecture Notes
+
+1. Authentication and RBAC flow
+- Authentication uses JWT. After login, the API signs a token containing user id and role.
+- Protected routes use authenticate middleware to verify the bearer token and load the user from the database.
+- RBAC uses authorize middleware. Teacher-only routes include content upload and own-content status. Principal-only routes include viewing all content, pending content, approval, and rejection.
+- Passwords are stored with bcrypt hashes only. Password hashes are excluded from normal user responses.
+
+2. Subject-based system design
+- Content has a normalized subject value such as maths or science.
+- Each subject has one ContentSlot row. ContentSchedule links uploaded content to its subject slot.
+- Public live broadcasting can be filtered by subject using ?subject=maths.
+- Without a subject filter, the public endpoint returns one active item per active subject for that teacher.
+
+3. Upload handling approach
+- Uploads use multer with local disk storage under uploads/.
+- Only image/jpeg, image/png, and image/gif are accepted.
+- File size is limited by MAX_FILE_SIZE_MB, defaulting to 10 MB.
+- Uploaded content stores file_path, public file_url, MIME type, and file size.
+- New uploads are immediately submitted as pending for principal review.
+
+4. Approval workflow design
+- Teachers upload content with title, subject, file, optional description, optional schedule window, and optional rotation duration.
+- Principals can list all content or only pending content.
+- Approval changes status to approved and stores approved_by and approved_at.
+- Rejection changes status to rejected and stores a required rejection_reason.
+- Public APIs never expose pending or rejected content.
+
+5. Scheduling and rotation logic
+- Content is live only when all of these are true:
+  a. status is approved
+  b. uploaded_by matches the teacher in the public URL
+  c. start_time exists and is less than or equal to now
+  d. end_time exists and is greater than or equal to now
+- Approved content without start_time or end_time is not active.
+- Rotation is independent per teacher and subject.
+- For a subject, eligible content is ordered by rotation_order.
+- The scheduler calculates total cycle duration as the sum of each content duration in minutes.
+- It uses the earliest active start_time as the cycle anchor, calculates elapsed time modulo total duration, and returns the item whose duration window contains that elapsed position.
+- When no eligible content exists, the endpoint returns "No content available" with an empty content payload.
+
+6. Database design decisions
+- Sequelize models are used for PostgreSQL.
+- Users stores principals and teachers in one table with a role column.
+- Content stores metadata, approval fields, schedule window fields, and upload ownership.
+- ContentSlots keeps subject slots separate from content metadata.
+- ContentSchedule stores slot assignment, rotation order, and per-content duration.
+- Relationships are explicit: User -> Content, Content -> ContentSchedule, ContentSlot -> ContentSchedule.
+
+7. Folder structure
+- src/controllers: HTTP request and response handling.
+- src/routes: Express route declarations.
+- src/services: business logic, approval logic, and scheduling logic.
+- src/middlewares: auth, RBAC, upload handling, validation, and errors.
+- src/models: Sequelize database models and associations.
+- src/config: environment and database setup.
+- src/utils: constants, validators, seed and sync scripts.
+- docs: Swagger/OpenAPI documentation.
+
+8. Middleware usage
+- helmet for basic HTTP security headers.
+- cors for cross-origin API access.
+- morgan for request logging.
+- express.json and express.urlencoded for request parsing.
+- multer for multipart file uploads.
+- validateRequest and validateQuery for Joi validation.
+- centralized error handling for consistent API errors.
+
+9. Scalability approach
+- The service layer isolates scheduling logic so it can move to a cache-backed strategy later.
+- The public /content/live endpoint can be cached per teacher and subject with short TTL Redis caching.
+- File storage can be swapped from local disk to S3 without changing content approval or scheduling logic.
+- Approval notifications or analytics can be pushed to queues later.
+- Indexes should be added in production for uploaded_by, subject, status, start_time, and end_time.
