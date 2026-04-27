@@ -135,5 +135,4 @@ New uploads are stored as `pending`. The assignment mentions `uploaded -> pendin
 ## Notes
 
 - Local upload files are served from `/uploads`.
-- Bonus features such as Redis caching, S3 upload, analytics, and pagination can be added later.
 - See `architecture-notes.txt` for system design details.
